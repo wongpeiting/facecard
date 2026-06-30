@@ -1,0 +1,46 @@
+name: Update YouGov data
+
+# Refresh the fame/popularity rosters from the live YouGov public-data API.
+# YouGov only refreshes its published ratings once a quarter. We run a month
+# after each quarter boundary — the 1st of Feb/May/Aug/Nov (one month past the
+# traditional Jan/Apr/Jul/Oct quarters) — as a buffer so the new quarter's data
+# is definitely live. First run: 1 Aug 2026. Plus on demand.
+on:
+  schedule:
+    - cron: '0 6 1 2,5,8,11 *' # 06:00 UTC on the 1st of Feb/May/Aug/Nov
+  workflow_dispatch: {} # allow manual runs from the Actions tab
+
+permissions:
+  contents: write # needed to push the refreshed data back
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Scrape latest fame + popularity
+        run: |
+          python fetch_yougov.py
+          cp static/yougov.json src/lib/yougov.json
+
+      - name: Commit if the data changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add static/yougov.json src/lib/yougov.json static/faces
+          if git diff --staged --quiet; then
+            echo "No change in YouGov ratings this week."
+          else
+            git commit -m "chore: weekly YouGov fame/popularity refresh ($(date -u +%Y-%m-%d))"
+            git push
+          fi
