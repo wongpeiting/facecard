@@ -1,6 +1,7 @@
 <script>
   import * as d3 from 'd3';
   import { fade } from 'svelte/transition';
+  import { base } from '$app/paths';
   import data from '$lib/yougov.json';
   import { COLORS, DEMOS } from '$lib/meta.js';
 
@@ -94,7 +95,7 @@
               <circle class="ring" r="1" fill={COLORS[party]} />
               {#if node.d.img}
                 <image
-                  href={node.d.img}
+                  href={base + node.d.img}
                   x="-1"
                   y="-1"
                   width="2"
