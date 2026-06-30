@@ -64,8 +64,10 @@
       </h1>
 
       <p class="standfirst">
-        As the midterms near, can either party find a face card that never declines? Democrats have Obama and Sanders, and the Republicans have Schwarzenegger, but they're throwbacks, not the future. The clock is ticking to find a fresh household name who doesn't leave most voters
-        cold.
+        As the midterms near, both of America's political parties are still searching for someone
+        capable of cutting through the noise and commanding attention on demand – or, as Gen Z might
+        put it, a face card that never declines. Here's how the hunt for their next main character
+        is shaping up.
       </p>
 
       <div class="controls">
