@@ -287,17 +287,21 @@
       height: auto;
       min-height: 100vh;
     }
+    /* chart first, copy after */
+    .stage {
+      order: -1;
+      flex: 0 0 auto;
+      width: 100%;
+      height: 82vh;
+      padding: 1rem;
+    }
     .sidebar {
+      order: 0;
       flex: 0 0 auto;
       max-width: none;
       border-right: none;
-      border-bottom: 1px solid #e5e7eb;
-    }
-    .stage {
-      flex: 0 0 auto;
-      width: 100%;
-      height: 85vh;
-      padding: 1rem;
+      border-top: 1px solid #e5e7eb; /* divider now sits above the copy */
+      padding: 1.75rem 1.5rem 2.25rem; /* drop the desktop top gap */
     }
   }
 </style>
