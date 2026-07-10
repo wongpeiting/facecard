@@ -55,6 +55,16 @@
   let playing = $state(false);
   let playTimer = null;
   const EVENTS = { '2024-08': 'Harris nominee', '2024-11': 'Election', '2025-01': 'Inauguration' };
+  // only the markers within range, each given a row so clustered labels stagger vertically
+  let tlEvents = $derived(
+    Object.entries(EVENTS)
+      .filter(([m]) => MONTHS.includes(m))
+      .map(([m, label], i) => ({
+        label,
+        pct: (MONTHS.indexOf(m) / Math.max(1, MONTHS.length - 1)) * 100,
+        row: i
+      }))
+  );
   function fmtMonth(m) {
     if (!m) return '';
     const [y, mo] = m.split('-');
@@ -179,12 +189,10 @@
           oninput={scrub}
           aria-label="timeline month"
         />
-        {#each Object.entries(EVENTS) as [m, label]}
-          {#if MONTHS.includes(m)}
-            <span class="tl-event" style="left: {(MONTHS.indexOf(m) / Math.max(1, MONTHS.length - 1)) * 100}%">
-              <i></i><em>{label}</em>
-            </span>
-          {/if}
+        {#each tlEvents as ev}
+          <span class="tl-event" style="left: {ev.pct}%">
+            <i style="height: {6 + ev.row * 15}px"></i><em>{ev.label}</em>
+          </span>
         {/each}
       </div>
       <span class="tl-label">{monthIdx === null ? 'All time' : fmtMonth(MONTHS[monthIdx])}</span>
@@ -207,7 +215,7 @@
     display: flex; flex-direction: column; }
   .chartarea { flex: 1 1 auto; min-height: 0; }
   /* timeline scrubber under the bubbles */
-  .timeline { flex: 0 0 auto; display: flex; align-items: center; gap: 0.8rem; padding: 1.4rem 0.5rem 0.3rem; }
+  .timeline { flex: 0 0 auto; display: flex; align-items: center; gap: 0.8rem; padding: 1.4rem 0.5rem 3.9rem; }
   .play { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%; border: 0; cursor: pointer;
     background: #1f2933; color: #fff; font-size: 0.8rem; display: grid; place-items: center; }
   .play:hover { background: #333e4c; }
