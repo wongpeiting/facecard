@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte';
+  import { base } from '$app/paths';
   import CirclePack from '$lib/CirclePack.svelte';
   import { PARTIES, METRICS, DEMOS, COLORS } from '$lib/meta.js';
   import data from '$lib/yougov.json';
@@ -96,6 +97,11 @@
           {/each}
         </div>
       </div>
+
+      <a class="viewswitch" href="{base}/tiktok/?world={party}">
+        <span class="vs-icon">▶</span>
+        <b>Reveal its TikTok cast →</b>
+      </a>
     </header>
 
     <footer>
@@ -219,7 +225,51 @@
     font-size: 0.98rem;
     line-height: 1.55;
     color: #3a4450;
+    margin: 0 0 1rem;
+  }
+  .viewswitch {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    text-decoration: none;
+    color: #1f2933;
+    background: #fff;
+    border: 1px solid #e4e7ec;
+    border-radius: 8px;
+    padding: 0.6rem 0.7rem;
     margin: 0 0 1.25rem;
+    transition:
+      border-color 160ms ease,
+      box-shadow 160ms ease,
+      transform 160ms ease;
+  }
+  .viewswitch:hover {
+    border-color: #b9c0c9;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.07);
+    transform: translateY(-1px);
+  }
+  .vs-icon {
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: #1f2933;
+    color: #fff;
+    font-size: 0.7rem;
+  }
+  .viewswitch b {
+    display: block;
+    font-size: 0.86rem;
+    line-height: 1.2;
+  }
+  .viewswitch small {
+    display: block;
+    font-size: 0.72rem;
+    color: #7a828d;
+    margin-top: 0.15rem;
+    line-height: 1.35;
   }
 
   /* controls — moved here, under the dek */
