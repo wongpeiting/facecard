@@ -49,13 +49,12 @@
     return tot ? Math.round((opp / tot) * 100) : 0;
   });
 
-  // ---- timeline scrubber ----
+  // ---- timeline range selector (dual handle: start + end month) ----
   let MONTHS = $derived(data.children.find((c) => c.name === world).months ?? []);
-  let monthIdx = $state(null); // null = all time
+  let win = $state(null); // null = all time, else { lo, hi } month indices
   let playing = $state(false);
   let playTimer = null;
   const EVENTS = { '2024-08': 'Harris nominee', '2024-11': 'Election', '2025-01': 'Inauguration' };
-  // only the markers within range, each given a row so clustered labels stagger vertically
   let tlEvents = $derived(
     Object.entries(EVENTS)
       .filter(([m]) => MONTHS.includes(m))
@@ -65,6 +64,9 @@
         row: i
       }))
   );
+  // handle positions (fall back to the full range when not windowed)
+  let winLo = $derived(win ? win.lo : 0);
+  let winHi = $derived(win ? win.hi : Math.max(0, MONTHS.length - 1));
   function fmtMonth(m) {
     if (!m) return '';
     const [y, mo] = m.split('-');
@@ -75,25 +77,36 @@
     if (playTimer) clearInterval(playTimer);
     playTimer = null;
   }
-  function scrub(e) {
+  function setLo(v) {
     act();
     stopPlay();
-    emotion = null; // month sizing and emotion sizing are mutually exclusive
-    monthIdx = +e.target.value;
+    emotion = null;
+    const hi = win ? win.hi : MONTHS.length - 1;
+    win = { lo: Math.min(v, hi), hi };
+  }
+  function setHi(v) {
+    act();
+    stopPlay();
+    emotion = null;
+    const lo = win ? win.lo : 0;
+    win = { lo, hi: Math.max(v, lo) };
   }
   function allTime() {
     stopPlay();
-    monthIdx = null;
+    win = null;
   }
   function togglePlay() {
     act();
     if (playing) return stopPlay();
     emotion = null;
-    if (monthIdx === null || monthIdx >= MONTHS.length - 1) monthIdx = 0;
+    const N = MONTHS.length;
+    const width = win ? win.hi - win.lo : 2; // keep the chosen window width, or a 3-month default
+    let lo = win && win.hi < N - 1 ? win.lo : 0;
+    win = { lo, hi: Math.min(lo + width, N - 1) };
     playing = true;
     playTimer = setInterval(() => {
-      if (monthIdx >= MONTHS.length - 1) stopPlay();
-      else monthIdx = monthIdx + 1;
+      if (!win || win.hi >= N - 1) stopPlay();
+      else win = { lo: win.lo + 1, hi: win.hi + 1 };
     }, 850);
   }
 </script>
@@ -133,7 +146,7 @@
         <div class="ctl">
           <span class="lbl">size by emotion signaled</span>
           <div class="chips">
-            <button class:active={emotion === null && monthIdx === null} onclick={() => { act(); emotion = null; allTime(); }}>All posts</button>
+            <button class:active={emotion === null && win === null} onclick={() => { act(); emotion = null; allTime(); }}>All posts</button>
             {#each EMOTIONS as e}
               <button class:active={emotion === e} onclick={() => { act(); emotion = e; allTime(); }}>{e}</button>
             {/each}
@@ -173,30 +186,34 @@
 
   <section class="stage">
     <div class="chartarea">
-      <TikTokPack {world} {emotion} {colorBy} {monthIdx} months={MONTHS} />
+      <TikTokPack {world} {emotion} {colorBy} {win} months={MONTHS} />
     </div>
     <div class="timeline">
       <button class="play" onclick={togglePlay} aria-label={playing ? 'pause' : 'play'}>
         {playing ? '⏸' : '▶'}
       </button>
-      <div class="tl-track">
-        <input
-          class="tl-range"
-          type="range"
-          min="0"
-          max={Math.max(0, MONTHS.length - 1)}
-          value={monthIdx ?? MONTHS.length - 1}
-          oninput={scrub}
-          aria-label="timeline month"
-        />
-        {#each tlEvents as ev}
-          <span class="tl-event" style="left: {ev.pct}%">
-            <i style="height: {6 + ev.row * 15}px"></i><em>{ev.label}</em>
-          </span>
-        {/each}
-      </div>
-      <span class="tl-label">{monthIdx === null ? 'All time' : fmtMonth(MONTHS[monthIdx])}</span>
-      {#if monthIdx !== null}
+      {#key MONTHS.length}
+        <div class="tl-track">
+          <div class="tl-base"></div>
+          <div
+            class="tl-sel"
+            style="left: {(winLo / Math.max(1, MONTHS.length - 1)) * 100}%; right: {(1 - winHi / Math.max(1, MONTHS.length - 1)) * 100}%"
+          ></div>
+          <input class="tl-range lo" type="range" min="0" max={Math.max(0, MONTHS.length - 1)}
+            value={winLo} oninput={(e) => setLo(+e.target.value)} aria-label="start month" />
+          <input class="tl-range hi" type="range" min="0" max={Math.max(0, MONTHS.length - 1)}
+            value={winHi} oninput={(e) => setHi(+e.target.value)} aria-label="end month" />
+          {#each tlEvents as ev}
+            <span class="tl-event" style="left: {ev.pct}%">
+              <i style="height: {6 + ev.row * 15}px"></i><em>{ev.label}</em>
+            </span>
+          {/each}
+        </div>
+      {/key}
+      <span class="tl-label">
+        {win ? `${fmtMonth(MONTHS[win.lo])} – ${fmtMonth(MONTHS[win.hi])}` : 'All time'}
+      </span>
+      {#if win}
         <button class="tl-all" onclick={allTime}>all time</button>
       {/if}
     </div>
@@ -219,8 +236,18 @@
   .play { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%; border: 0; cursor: pointer;
     background: #1f2933; color: #fff; font-size: 0.8rem; display: grid; place-items: center; }
   .play:hover { background: #333e4c; }
-  .tl-track { position: relative; flex: 1 1 auto; }
-  .tl-range { width: 100%; margin: 0; accent-color: #1f2933; cursor: pointer; }
+  .tl-track { position: relative; flex: 1 1 auto; height: 20px; }
+  .tl-base { position: absolute; top: 8px; left: 0; right: 0; height: 4px; border-radius: 2px; background: #dfe2e7; }
+  .tl-sel { position: absolute; top: 8px; height: 4px; border-radius: 2px; background: #1f2933; }
+  .tl-range { position: absolute; top: 0; left: 0; width: 100%; height: 20px; margin: 0;
+    background: transparent; pointer-events: none; -webkit-appearance: none; appearance: none; }
+  .tl-range::-webkit-slider-runnable-track { background: transparent; height: 20px; }
+  .tl-range::-moz-range-track { background: transparent; height: 20px; }
+  .tl-range::-webkit-slider-thumb { pointer-events: auto; -webkit-appearance: none; appearance: none;
+    width: 16px; height: 16px; border-radius: 50%; background: #1f2933; border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); cursor: grab; }
+  .tl-range::-moz-range-thumb { pointer-events: auto; width: 16px; height: 16px; border-radius: 50%;
+    background: #1f2933; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); cursor: grab; }
   .tl-event { position: absolute; top: 14px; transform: translateX(-50%); white-space: nowrap;
     display: flex; flex-direction: column; align-items: center; pointer-events: none; }
   .tl-event i { width: 1px; height: 8px; background: #b0b6bf; margin-bottom: 2px; }
