@@ -7,8 +7,8 @@
 
   // world = "Republican" (@whitehouse+@republicans) | "Democrat" (@democrats).
   // emotion = null (size by total posts) or an emotion key (size by that emotion).
-  // colorBy = 'party' | 'lean'. monthIdx = null (all-time) or index into `months`.
-  let { world = 'Republican', emotion = null, colorBy = 'party', monthIdx = null, months = [] } =
+  // colorBy = 'party' | 'lean'. win = null (all-time) or { lo, hi } month-index window.
+  let { world = 'Republican', emotion = null, colorBy = 'party', win = null, months = [] } =
     $props();
 
   const ACCT_LABEL = { whitehouse: '@whitehouse', republicans: '@republicans', democrats: '@democrats' };
@@ -20,11 +20,15 @@
 
   let all = $derived(data.children.find((c) => c.name === world).children);
   const val = (d) => {
-    if (monthIdx !== null && months[monthIdx]) return d.monthly?.[months[monthIdx]] ?? 0; // that month's posts
+    if (win && months.length) {
+      let s = 0; // posts within the selected [lo, hi] month window
+      for (let i = win.lo; i <= win.hi; i++) s += d.monthly?.[months[i]] ?? 0;
+      return s;
+    }
     return emotion ? (d.emotions?.[emotion] ?? 0) : d.videos;
   };
-  // when sizing by a month or an emotion, only show figures that actually have it
-  let people = $derived(emotion || monthIdx !== null ? all.filter((d) => val(d) > 0) : all);
+  // when sizing by a window or an emotion, only show figures that actually have it
+  let people = $derived(emotion || win ? all.filter((d) => val(d) > 0) : all);
 
   let chartW = $state(0);
   let chartH = $state(0);
